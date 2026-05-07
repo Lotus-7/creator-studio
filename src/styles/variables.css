@@ -1,0 +1,81 @@
+:root {
+  /* ============= Primary Colors ============= */
+  --color-primary: #b07848;
+  --color-primary-hover: #9a6838;
+  --color-primary-light: #f5ede3;
+  --color-primary-lighter: #faf8f5;
+
+  /* ============= Backgrounds ============= */
+  --color-bg: #faf6f1;
+  --color-surface: #ffffff;
+  --color-surface-warm: #f5ede3;
+  --color-surface-warm-light: #faf8f5;
+
+  /* ============= Borders ============= */
+  --color-border: #ede4d6;
+  --color-border-light: #f0e8dc;
+  --color-border-warm: #e0d5c5;
+
+  /* ============= Text ============= */
+  --color-text: #3a2e24;
+  --color-text-secondary: #6b5a4a;
+  --color-text-muted: #8a7a6a;
+  --color-text-light: #b8a898;
+
+  /* ============= Semantic Colors ============= */
+  --color-success: #5b8c5a;
+  --color-success-light: #e8f5e8;
+  --color-error: #c44;
+  --color-error-light: #fee;
+  --color-warning: #d9a048;
+  --color-info: #5a8ab8;
+
+  /* ============= Fonts ============= */
+  --font-display: "Georgia", "Noto Serif SC", "Songti SC", serif;
+  --font-body: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  --font-mono: "SF Mono", "Monaco", "Cascadia Code", monospace;
+
+  /* ============= Font Sizes ============= */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+
+  /* ============= Spacing ============= */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* ============= Border Radius ============= */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+
+  /* ============= Shadows ============= */
+  --shadow-sm: 0 1px 2px rgba(139, 109, 74, 0.04);
+  --shadow-md: 0 2px 8px rgba(139, 109, 74, 0.06);
+  --shadow-lg: 0 4px 16px rgba(139, 109, 74, 0.08);
+  --shadow-xl: 0 8px 32px rgba(139, 109, 74, 0.1);
+
+  /* ============= Transitions ============= */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* ============= Z-index ============= */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+}
