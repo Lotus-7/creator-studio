@@ -33,6 +33,7 @@ interface AppStore {
   projectContext: string;
   setProjectContext: (context: string) => void;
   loading: boolean;
+  generatingType: GenerationType | null;
   setLoading: (loading: boolean) => void;
   result: GenerationResult | null;
   setResult: (result: GenerationResult | null) => void;
@@ -112,6 +113,7 @@ export const useAppStore = create<AppStore>()(
       projectContext: "",
       setProjectContext: (context) => set({ projectContext: context }),
       loading: false,
+      generatingType: null,
       setLoading: (loading) => set({ loading }),
       result: null,
       setResult: (result) => set({ result }),
@@ -136,7 +138,7 @@ export const useAppStore = create<AppStore>()(
 
         if (loading) return;
 
-        set({ loading: true });
+        set({ loading: true, generatingType: type });
         try {
           const content = await invoke<string>("generate_content", {
             contentType: type,
@@ -171,7 +173,7 @@ export const useAppStore = create<AppStore>()(
             },
           });
         } finally {
-          set({ loading: false });
+          set({ loading: false, generatingType: null });
         }
       },
 

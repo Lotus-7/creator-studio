@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { readDir, type DirEntry } from "@tauri-apps/plugin-fs";
 
 interface FileTreeProps {
   basePath: string;
+  refreshKey?: number;
 }
 
 const FileTreeNode: React.FC<{ entry: DirEntry; parentPath: string; level: number }> = ({ entry, parentPath, level }) => {
@@ -10,12 +11,11 @@ const FileTreeNode: React.FC<{ entry: DirEntry; parentPath: string; level: numbe
   const [children, setChildren] = useState<DirEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // separator handling for cross-platform (naive fallback, assume we use Tauri's path separator eventually or just standard / since tauri-plugin-fs normalizes somewhat, but let's use /)
   const fullPath = `${parentPath}/${entry.name}`;
 
   const toggleOpen = async () => {
     if (!entry.isDirectory) return;
-    
+
     if (!isOpen && children.length === 0) {
       setLoading(true);
       try {
@@ -36,7 +36,6 @@ const FileTreeNode: React.FC<{ entry: DirEntry; parentPath: string; level: numbe
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     if (!entry.isDirectory && (entry.name.endsWith('.md') || entry.name.endsWith('.txt'))) {
-      // Custom format to identify our own file drag
       e.dataTransfer.setData("application/creator-desktop-file", JSON.stringify({ path: fullPath, name: entry.name }));
       e.dataTransfer.effectAllowed = "copy";
     } else {
@@ -46,14 +45,14 @@ const FileTreeNode: React.FC<{ entry: DirEntry; parentPath: string; level: numbe
 
   return (
     <div>
-      <div 
-        style={{ 
-          padding: "6px 4px", 
+      <div
+        style={{
+          padding: "6px 4px",
           paddingLeft: `${level * 12 + 4}px`,
-          display: "flex", 
-          alignItems: "center", 
-          gap: "8px", 
-          borderBottom: "1px solid var(--color-border)", 
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          borderBottom: "1px solid var(--color-border)",
           color: "var(--color-text)",
           cursor: entry.isDirectory ? "pointer" : "grab",
           userSelect: "none"
@@ -62,9 +61,9 @@ const FileTreeNode: React.FC<{ entry: DirEntry; parentPath: string; level: numbe
         draggable={!entry.isDirectory}
         onDragStart={handleDragStart}
       >
-        <span style={{ 
-          display: "inline-block", 
-          width: "16px", 
+        <span style={{
+          display: "inline-block",
+          width: "16px",
           textAlign: "center",
           fontSize: "12px",
           color: "var(--color-text-light)"
@@ -86,15 +85,11 @@ const FileTreeNode: React.FC<{ entry: DirEntry; parentPath: string; level: numbe
   );
 };
 
-export const FileTree: React.FC<FileTreeProps> = ({ basePath }) => {
+export const FileTree: React.FC<FileTreeProps> = ({ basePath, refreshKey }) => {
   const [files, setFiles] = useState<DirEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadFiles(basePath);
-  }, [basePath]);
-
-  const loadFiles = async (path: string) => {
+  const loadFiles = useCallback(async (path: string) => {
     setLoading(true);
     try {
       const entries = await readDir(path);
@@ -108,7 +103,13 @@ export const FileTree: React.FC<FileTreeProps> = ({ basePath }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (basePath) {
+      loadFiles(basePath);
+    }
+  }, [basePath, refreshKey, loadFiles]);
 
   if (loading) {
     return <div style={{ color: "var(--color-text-light)", textAlign: "center", padding: "12px 0" }}>加载中...</div>;

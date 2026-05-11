@@ -102,7 +102,13 @@ fn optimize_draft(draft: String, persona_id: Option<String>) -> Result<String, S
 }
 
 #[command]
-pub fn ask_ai(messages: Vec<serde_json::Value>, persona_id: Option<String>) -> Result<String, String> {
+pub async fn ask_ai(messages: Vec<serde_json::Value>, persona_id: Option<String>) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || ask_ai_inner(messages, persona_id))
+        .await
+        .map_err(|e| format!("Task error: {}", e))?
+}
+
+fn ask_ai_inner(messages: Vec<serde_json::Value>, persona_id: Option<String>) -> Result<String, String> {
     let providers_file = get_providers_file();
     let mut provider_name = String::new();
     let mut model_name = String::new();
@@ -193,7 +199,20 @@ pub fn ask_ai(messages: Vec<serde_json::Value>, persona_id: Option<String>) -> R
 }
 
 #[command]
-pub fn generate_content(
+pub async fn generate_content(
+    content_type: String,
+    idea: String,
+    persona_id: Option<String>,
+    project_context: Option<String>,
+) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || {
+        generate_content_inner(content_type, idea, persona_id, project_context)
+    })
+    .await
+    .map_err(|e| format!("Task error: {}", e))?
+}
+
+fn generate_content_inner(
     content_type: String,
     idea: String,
     _persona_id: Option<String>,

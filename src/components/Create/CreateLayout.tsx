@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { useAppStore } from "../../stores/useAppStore";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "../common/Button";
@@ -8,10 +8,26 @@ import { GenerateActions } from "./GenerateActions";
 import { ResultDisplay } from "./ResultDisplay";
 import { LoadingSpinner } from "../common/LoadingSpinner";
 import { FileTree } from "./FileTree";
-import type { Project } from "../../types";
+import type { Project, GenerationType } from "../../types";
+
+const LOADING_MESSAGES: Record<GenerationType, string> = {
+  topic: "AI 正在为你挖掘创意选题...",
+  outline: "AI 正在构建内容大纲...",
+  draft: "AI 正在挥笔撰写初稿...",
+  title: "AI 正在打磨爆款标题...",
+  optimize: "AI 正在优化你的文稿...",
+};
+
+const getLoadingMessage = (type: GenerationType | null) =>
+  type ? LOADING_MESSAGES[type] : "AI 正在创作中...";
 
 export const CreateLayout: React.FC = () => {
-  const { currentProject, setCurrentProject, loading } = useAppStore();
+  const { currentProject, setCurrentProject, loading, generatingType } = useAppStore();
+  const [fileTreeRefreshKey, setFileTreeRefreshKey] = useState(0);
+
+  const handleFileSaved = useCallback(() => {
+    setFileTreeRefreshKey((k) => k + 1);
+  }, []);
 
   const handleOpenFolder = async () => {
     try {
@@ -21,14 +37,13 @@ export const CreateLayout: React.FC = () => {
         title: "选择工作区文件夹",
       });
       if (selected && !Array.isArray(selected)) {
-        // 从路径中提取文件夹名
         const folderName = selected.split(/[/\\]/).pop() || "未命名工作区";
         const newProject: Project = {
           id: crypto.randomUUID(),
           name: folderName,
           description: `工作区: ${selected}`,
           localPath: selected,
-          contextContent: "", // 暂不自动读取全部上下文，保持轻量
+          contextContent: "",
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -58,8 +73,8 @@ export const CreateLayout: React.FC = () => {
           <PersonaSelector />
           <IdeaInput />
           <GenerateActions />
-          {loading && <LoadingSpinner />}
-          {!loading && <ResultDisplay />}
+          {loading && <LoadingSpinner message={getLoadingMessage(generatingType)} />}
+          {!loading && <ResultDisplay onFileSaved={handleFileSaved} />}
         </div>
       </div>
     );
@@ -71,15 +86,15 @@ export const CreateLayout: React.FC = () => {
       {/* 左侧：文件树 */}
       <div className="card" style={{ width: "240px", flexShrink: 0, display: "flex", flexDirection: "column", maxHeight: "100%" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-          <h3 
-            style={{ margin: 0, fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} 
+          <h3
+            style={{ margin: 0, fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
             title={currentProject.name}
           >
             {currentProject.name}
           </h3>
           <Button variant="secondary" size="sm" onClick={handleCloseWorkspace}>关闭工作区</Button>
         </div>
-        <FileTree basePath={currentProject.localPath || ""} />
+        <FileTree basePath={currentProject.localPath || ""} refreshKey={fileTreeRefreshKey} />
       </div>
 
       {/* 右侧：现有创作组件 */}
@@ -87,8 +102,8 @@ export const CreateLayout: React.FC = () => {
         <PersonaSelector />
         <IdeaInput />
         <GenerateActions />
-        {loading && <LoadingSpinner />}
-        {!loading && <ResultDisplay />}
+        {loading && <LoadingSpinner message={getLoadingMessage(generatingType)} />}
+        {!loading && <ResultDisplay onFileSaved={handleFileSaved} />}
       </div>
     </div>
   );

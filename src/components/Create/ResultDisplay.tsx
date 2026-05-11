@@ -12,7 +12,11 @@ const TYPE_LABELS: Record<string, string> = {
   optimize: "优化建议",
 };
 
-export const ResultDisplay: React.FC = () => {
+interface ResultDisplayProps {
+  onFileSaved?: () => void;
+}
+
+export const ResultDisplay: React.FC<ResultDisplayProps> = ({ onFileSaved }) => {
   const { result, currentProject } = useAppStore();
 
   if (!result) return null;
@@ -30,6 +34,7 @@ export const ResultDisplay: React.FC = () => {
       const filePath = `${currentProject.localPath}${separator}${fileName}`;
       
       await writeTextFile(filePath, result.content);
+      onFileSaved?.();
       alert(`已成功保存至项目：${fileName}`);
     } catch (error) {
       console.error("保存到项目失败:", error);
