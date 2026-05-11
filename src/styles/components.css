@@ -179,6 +179,36 @@
   resize: vertical;
 }
 
+/* ============= Button Loading State ============= */
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btn-generating {
+  animation: btn-pulse 1.5s ease-in-out infinite;
+  min-width: 130px;
+}
+
+@keyframes btn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(176, 120, 72, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(176, 120, 72, 0); }
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: btn-spin 0.6s linear infinite;
+}
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ============= Loading Spinner ============= */
 .loading {
   display: flex;

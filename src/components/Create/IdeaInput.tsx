@@ -1,6 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useAppStore } from "../../stores/useAppStore";
-import { listen } from "@tauri-apps/api/event";
 import { readTextFile, readDir } from "@tauri-apps/plugin-fs";
 
 export const IdeaInput: React.FC = () => {
@@ -11,47 +10,9 @@ export const IdeaInput: React.FC = () => {
   const [mentionQuery, setMentionQuery] = useState<{ active: boolean; query: string; index: number }>({ active: false, query: "", index: 0 });
   const [localFiles, setLocalFiles] = useState<{ name: string; path: string }[]>([]);
 
-  // 监听 Tauri 全局拖放事件
-  useEffect(() => {
-    let unlistenDragDrop: () => void;
-    let unlistenFileDrop: () => void;
-
-    const handlePaths = async (paths: string[]) => {
-      if (!isDraggingRef.current) return;
-      setIsDragging(false);
-      isDraggingRef.current = false;
-
-      let newContext = "";
-      for (const path of paths) {
-        if (path.endsWith(".txt") || path.endsWith(".md")) {
-          try {
-            const content = await readTextFile(path);
-            newContext += `\n\n--- 文件: ${path.split(/[/\\]/).pop()} ---\n${content}`;
-          } catch (error) {
-            console.error("读取文件失败", error);
-          }
-        }
-      }
-      if (newContext) {
-        const prev = useAppStore.getState().projectContext;
-        setProjectContext(prev ? prev + newContext : newContext.trim());
-      }
-    };
-
-    listen<{ paths: string[] }>("tauri://drag-drop", (e) => handlePaths(e.payload.paths))
-      .then(unlisten => { unlistenDragDrop = unlisten; });
-      
-    listen<{ paths: string[] }>("tauri://file-drop", (e) => handlePaths(e.payload.paths))
-      .then(unlisten => { unlistenFileDrop = unlisten; });
-
-    return () => {
-      if (unlistenDragDrop) unlistenDragDrop();
-      if (unlistenFileDrop) unlistenFileDrop();
-    };
-  }, [setProjectContext]);
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!isDraggingRef.current) {
       setIsDragging(true);
       isDraggingRef.current = true;
@@ -60,7 +21,6 @@ export const IdeaInput: React.FC = () => {
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    // 简单的判断，防止子元素触发 leave
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsDragging(false);
       isDraggingRef.current = false;
@@ -69,46 +29,41 @@ export const IdeaInput: React.FC = () => {
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
     isDraggingRef.current = false;
 
-    // Check for our custom internal drag-drop format first
+    // 1. 内部拖拽：从 FileTree 拖入的文件
     const customDataStr = e.dataTransfer.getData("application/creator-desktop-file");
     if (customDataStr) {
       try {
         const fileData = JSON.parse(customDataStr);
-        if (fileData && fileData.path) {
+        if (fileData?.path) {
           const content = await readTextFile(fileData.path);
           const newContext = `\n\n--- 文件: ${fileData.name} ---\n${content}`;
           const prev = useAppStore.getState().projectContext;
           setProjectContext(prev ? prev + newContext : newContext.trim());
-          return; // Done
         }
       } catch (err) {
-        console.error("处理内部拖拽失败", err);
+        console.error("读取拖拽文件失败", err);
       }
+      return;
     }
 
+    // 2. 外部拖拽：从系统文件管理器拖入的文件
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       let newContext = "";
       for (let i = 0; i < e.dataTransfer.files.length; i++) {
         const file = e.dataTransfer.files[i];
-        const path = (file as any).path; 
+        const filePath = (file as any).path;
         if (file.name.endsWith(".txt") || file.name.endsWith(".md")) {
-          if (path) {
-            try {
-              const content = await readTextFile(path);
-              newContext += `\n\n--- 文件: ${file.name} ---\n${content}`;
-            } catch (err) {
-               console.error("Tauri API 读取文件失败", err);
-            }
-          } else {
-             try {
-               const content = await file.text();
-               newContext += `\n\n--- 文件: ${file.name} ---\n${content}`;
-             } catch (err) {
-               console.error("HTML5 API 读取文件失败", err);
-             }
+          try {
+            const content = filePath
+              ? await readTextFile(filePath)
+              : await file.text();
+            newContext += `\n\n--- 文件: ${file.name} ---\n${content}`;
+          } catch (err) {
+            console.error("读取文件失败", err);
           }
         }
       }
@@ -158,7 +113,7 @@ export const IdeaInput: React.FC = () => {
       const newContext = `\n\n--- 文件: ${file.name} ---\n${content}`;
       const prev = useAppStore.getState().projectContext;
       setProjectContext(prev ? prev + newContext : newContext.trim());
-      
+
       const before = input.slice(0, mentionQuery.index);
       const after = input.slice(mentionQuery.index + mentionQuery.query.length + 1);
       setInput(before + after);
@@ -169,14 +124,15 @@ export const IdeaInput: React.FC = () => {
   };
 
   return (
-    <div 
-      className="card" 
-      style={{ 
-        display: "flex", 
-        flexDirection: "column", 
+    <div
+      className="card"
+      style={{
+        display: "flex",
+        flexDirection: "column",
         gap: "12px",
         border: isDragging ? "2px dashed var(--color-primary)" : "1px solid var(--color-border)",
-        transition: "border 0.2s ease"
+        background: isDragging ? "var(--color-surface-warm-light)" : undefined,
+        transition: "border 0.2s ease, background 0.2s ease"
       }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -184,13 +140,13 @@ export const IdeaInput: React.FC = () => {
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h3 className="card-title" style={{ margin: 0, fontSize: "14px", color: "var(--color-text-light)" }}>内容输入与上下文</h3>
-        {isDragging && <span style={{ fontSize: "12px", color: "var(--color-primary)" }}>松开以加载文件</span>}
+        {isDragging && <span style={{ fontSize: "12px", color: "var(--color-primary)", fontWeight: 500 }}>松开以加载文件内容</span>}
       </div>
-      
+
       {projectContext && (
-        <div style={{ 
-          background: "var(--color-surface-warm-light)", 
-          padding: "8px 12px", 
+        <div style={{
+          background: "var(--color-surface-warm-light)",
+          padding: "8px 12px",
           borderRadius: "var(--radius-sm)",
           fontSize: "12px",
           display: "flex",
@@ -201,8 +157,8 @@ export const IdeaInput: React.FC = () => {
             <span style={{ fontWeight: "bold", color: "var(--color-primary-dark)" }}>
               已加载上下文 {currentProject ? `(来自项目: ${currentProject.name})` : "(临时)"}：
             </span>
-            <button 
-              onClick={() => setProjectContext("")} 
+            <button
+              onClick={() => setProjectContext("")}
               style={{ background: "none", border: "none", color: "var(--color-error)", cursor: "pointer", fontSize: "12px" }}
             >
               清空
@@ -217,7 +173,7 @@ export const IdeaInput: React.FC = () => {
       <div style={{ position: "relative", display: "flex", flexDirection: "column", flex: 1 }}>
         <textarea
           className="textarea-input"
-          placeholder="输入你的想法、大纲或初稿... (输入 @ 引用本地文件)"
+          placeholder="输入你的想法、大纲或初稿... (支持拖拽文件到此处，或输入 @ 引用本地文件)"
           value={input}
           onChange={handleInputChange}
           onSelect={updateMentionState}
@@ -225,7 +181,7 @@ export const IdeaInput: React.FC = () => {
           onClick={updateMentionState}
           rows={4}
         />
-        
+
         {mentionQuery.active && currentProject?.localPath && (
           <div style={{
             position: "absolute",
